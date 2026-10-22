@@ -2,7 +2,7 @@
 # Переключатель режима «мак с закрытой крышкой работает как сервер».
 #   blueberry on      отключить сон (pmset disablesleep, sleep 0, powernap 0) и запустить caffeinate -imsu
 #   blueberry off     вернуть исходные настройки питания и остановить caffeinate (сервер остаётся работать)
-#   blueberry stop    полная остановка: off, прокси, LM Studio, выгрузка модели (запуск обратно: blueberry on)
+#   blueberry stop    полная остановка: off, прокси, LM Studio (вместе с его фоновым процессом), выгрузка модели (обратно: blueberry on)
 #   blueberry status  показать состояние
 set -u
 HELPER=/usr/local/libexec/blueberry-pmset
@@ -54,6 +54,18 @@ case "${1:-status}" in
     done
     if [ -x "$LMS" ]; then "$LMS" unload --all 2>&1 | tail -1; "$LMS" server stop 2>&1 | tail -1; fi
     pkill -f "dns-sd -R Blueberry" 2>/dev/null
+    # Закрыть фоновый процесс LM Studio, только если он запущен как сервис (--run-as-service);
+    # обычное окно LM Studio, открытое пользователем, не трогаем. Следующий `blueberry on` поднимет его заново.
+    # Сигнал сразу после `lms server stop` приложение может проигнорировать, поэтому повторяем до 10 секунд.
+    SVC="LM Studio.app/Contents/MacOS/LM Studio --run-as-service"
+    if pgrep -f "$SVC" >/dev/null; then
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        pkill -TERM -f "$SVC" 2>/dev/null
+        sleep 1
+        pgrep -f "$SVC" >/dev/null || break
+      done
+      if pgrep -f "$SVC" >/dev/null; then echo "ВНИМАНИЕ: процесс LM Studio не закрылся"; else echo "процесс LM Studio закрыт"; fi
+    fi
     echo "blueberry: сервер остановлен (запуск: blueberry on)"
     ;;
   status)

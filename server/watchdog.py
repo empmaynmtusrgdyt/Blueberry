@@ -19,6 +19,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 CONFIG_DIR = Path(os.environ.get("BLUEBERRY_CONFIG_DIR", Path.home() / ".config" / "blueberry"))
@@ -61,6 +62,7 @@ class Watchdog:
         self.idle_seconds = int(g("WD_IDLE_MINUTES", 20)) * 60
         self.lms = g("LMS_BIN", str(Path.home() / ".lmstudio/bin/lms"))
         self.model_id = g("MODEL_IDENTIFIER", "gemma")
+        self.lms_port = int(g("LMS_PORT", 1234))
         self.started = time.time()
         self.hot_since: float | None = None
 
@@ -83,11 +85,23 @@ class Watchdog:
         return level, int(m.group(1)) if m else 100
 
     def model_state(self) -> str | None:
-        """None — модель не загружена, иначе статус (IDLE / GENERATING / ...)"""
-        for line in run(self.lms, "ps").splitlines():
-            parts = line.split()
-            if parts and parts[0] == self.model_id and len(parts) > 2:
-                return parts[2]
+        """None: сервер не работает или модель не загружена; иначе статус (IDLE / GENERATING / ...).
+
+        Опрашиваем сервер по HTTP, а не командой `lms ps`: она сама поднимает фоновый сервис LM Studio,
+        и после `blueberry stop` он оживал бы каждые 30 секунд."""
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{self.lms_port}/api/v0/models", timeout=3) as r:
+                models = json.load(r).get("data", [])
+        except (OSError, ValueError):
+            return None
+        for m in models:
+            if m.get("id") == self.model_id and m.get("state") == "loaded":
+                # статус «идёт генерация» виден только в lms ps; вызываем его, лишь когда сервер точно работает
+                for line in run(self.lms, "ps").splitlines():
+                    parts = line.split()
+                    if parts and parts[0] == self.model_id and len(parts) > 2:
+                        return parts[2]
+                return "IDLE"
         return None
 
     def last_activity(self) -> float:
