@@ -1,7 +1,8 @@
 #!/bin/bash
 # Переключатель режима «мак с закрытой крышкой работает как сервер».
 #   blueberry on      отключить сон (pmset disablesleep, sleep 0, powernap 0) и запустить caffeinate -imsu
-#   blueberry off     вернуть исходные настройки питания и остановить caffeinate
+#   blueberry off     вернуть исходные настройки питания и остановить caffeinate (сервер остаётся работать)
+#   blueberry stop    полная остановка: off, прокси, LM Studio, выгрузка модели (запуск обратно: blueberry on)
 #   blueberry status  показать состояние
 set -u
 HELPER=/usr/local/libexec/blueberry-pmset
@@ -45,6 +46,16 @@ case "${1:-status}" in
     need_helper
     sudo "$HELPER" off
     ;;
+  stop)
+    "$0" off
+    LMS="$HOME/.lmstudio/bin/lms"
+    for label in com.blueberry.proxy com.blueberry.lmstudio; do
+      launchctl bootout "gui/$(id -u)/$label" 2>/dev/null && echo "агент $label остановлен"
+    done
+    if [ -x "$LMS" ]; then "$LMS" unload --all 2>&1 | tail -1; "$LMS" server stop 2>&1 | tail -1; fi
+    pkill -f "dns-sd -R Blueberry" 2>/dev/null
+    echo "blueberry: сервер остановлен (запуск: blueberry on)"
+    ;;
   status)
     echo "== Режим =="
     if pmset -g | grep -qE 'SleepDisabled[[:space:]]+1'; then echo "disablesleep: ВКЛ"; else echo "disablesleep: выкл"; fi
@@ -72,5 +83,5 @@ case "${1:-status}" in
     shift
     exec "$HOME/.config/blueberry/venv/bin/python" "$HOME/.config/blueberry/bin/blueberry-qr.py" "$@"
     ;;
-  *) echo "Использование: blueberry on|off|status|qr [--png]"; exit 1 ;;
+  *) echo "Использование: blueberry on|off|stop|status|qr [--png]"; exit 1 ;;
 esac

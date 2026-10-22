@@ -88,7 +88,8 @@ scripts/install-sudoers.sh install
 ```bash
 blueberry on        # не спать при закрытой крышке (disablesleep, sleep 0, powernap 0, caffeinate -imsu)
 blueberry status    # режим, питание, батарея, термика, IP, порты, сервисы, watchdog, последние срабатывания
-blueberry off       # вернуть исходные настройки питания
+blueberry off       # вернуть исходные настройки питания (сервер остаётся работать)
+blueberry stop      # полная остановка: off, прокси, LM Studio, выгрузка модели (обратно: blueberry on)
 blueberry qr        # QR для телефона (--png сохранить и открыть изображение; удалите после использования)
 ```
 
