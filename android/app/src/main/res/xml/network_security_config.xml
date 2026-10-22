@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext HTTP нужен для связи с маком в локальной сети (прокси без TLS). Android не умеет задавать
+  диапазоны IP, поэтому на уровне платформы cleartext разрешён, а ограничение «только локальные адреса»
+  жёстко проверяет сетевой клиент приложения (net/PrivateAddress.kt): 10.x, 172.16–31.x, 192.168.x, 169.254.x, *.local.
+  Приложение не делает других сетевых запросов.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
