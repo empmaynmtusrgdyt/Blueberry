@@ -68,5 +68,9 @@ case "${1:-status}" in
     echo; echo "== Блокировки сна (pmset -g assertions) =="
     pmset -g assertions | grep -E "PreventUserIdleSystemSleep|PreventSystemSleep|PreventUserIdleDisplaySleep|pid " | head -8
     ;;
-  *) echo "Использование: blueberry on|off|status"; exit 1 ;;
+  qr)
+    shift
+    exec "$HOME/.config/blueberry/venv/bin/python" "$HOME/.config/blueberry/bin/blueberry-qr.py" "$@"
+    ;;
+  *) echo "Использование: blueberry on|off|status|qr [--png]"; exit 1 ;;
 esac

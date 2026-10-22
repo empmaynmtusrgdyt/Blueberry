@@ -10,7 +10,7 @@ PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 
 if [ "${1:-}" = "uninstall" ]; then
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
-  rm -f "$PLIST" "$CFG/bin/proxy.py"
+  rm -f "$PLIST" "$CFG/bin/proxy.py" "$CFG/bin/blueberry-qr.py"
   echo "Агент $LABEL удалён (конфиг, токен, venv и логи сохранены)."
   exit 0
 fi
@@ -26,6 +26,9 @@ if [ ! -x "$CFG/venv/bin/python" ]; then
   "$CFG/venv/bin/pip" install -q -r "$ROOT/server/requirements.txt"
 fi
 cp "$ROOT/server/proxy.py" "$CFG/bin/proxy.py"
+cp "$ROOT/scripts/blueberry-qr.py" "$CFG/bin/blueberry-qr.py"
+cp "$ROOT/scripts/blueberry" "$CFG/bin/blueberry"; chmod +x "$CFG/bin/blueberry"
+grep -q '^BONJOUR_NAME=' "$CFG/config.env" || sed -n '/^# --- Обнаружение/,$p' "$ROOT/config.example.env" >> "$CFG/config.env"
 sed "s|__HOME__|$HOME|g" "$ROOT/launchd/com.blueberry.proxy.plist.template" > "$PLIST"
 plutil -lint "$PLIST"
 

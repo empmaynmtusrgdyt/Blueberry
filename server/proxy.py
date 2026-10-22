@@ -235,9 +235,27 @@ async def guard(request: web.Request, handler):
 
 async def on_startup(app: web.Application) -> None:
     app["proxy"].session = aiohttp.ClientSession()
+    cfg = app["cfg"]
+    host = cfg.get("PROXY_HOST", "127.0.0.1")
+    if host in ("127.0.0.1", "localhost", "::1"):
+        log.info("прокси только на localhost: Bonjour-анонс не нужен")
+        return
+    # Анонс _blueberry._tcp для автообнаружения телефоном. dns-sd живёт, пока жив прокси.
+    name = cfg.get("BONJOUR_NAME", "Blueberry")
+    port = str(cfg.get("PROXY_PORT", 8787))
+    try:
+        app["bonjour"] = await asyncio.create_subprocess_exec(
+            "/usr/bin/dns-sd", "-R", name, "_blueberry._tcp", ".", port, "v=1",
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        log.info("Bonjour: %s._blueberry._tcp на порту %s", name, port)
+    except OSError as e:
+        log.error("не удалось запустить dns-sd: %s", e)
 
 
 async def on_cleanup(app: web.Application) -> None:
+    proc = app.get("bonjour")
+    if proc and proc.returncode is None:
+        proc.terminate()
     await app["proxy"].session.close()
 
 
@@ -245,6 +263,7 @@ def make_app(cfg: dict, token: str) -> web.Application:
     proxy = Proxy(cfg, token)
     app = web.Application(middlewares=[guard], client_max_size=proxy.max_body)
     app["proxy"] = proxy
+    app["cfg"] = cfg
     app.router.add_get("/health", proxy.health)
     app.router.add_get("/v1/models", proxy.models)
     app.router.add_post("/v1/chat/completions", proxy.chat)
