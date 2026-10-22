@@ -85,6 +85,18 @@ scripts/install-sudoers.sh install
 
 ## Как пользоваться
 
+Шпаргалка (команда `blueberry` доступна, если `~/.config/blueberry/bin` добавлен в PATH, иначе вызывайте по полному пути):
+
+```bash
+blueberry on      # запуск: сервисы, модель, режим закрытой крышки (подожди 10–20 с)
+blueberry stop    # полная остановка
+blueberry off     # только вернуть сон, сервер остаётся работать
+blueberry status  # что сейчас включено
+blueberry qr      # QR для телефона
+```
+
+Подробности по каждой команде:
+
 ```bash
 blueberry on        # не спать при закрытой крышке (disablesleep, sleep 0, powernap 0, caffeinate -imsu)
 blueberry status    # режим, питание, батарея, термика, IP, порты, сервисы, watchdog, последние срабатывания
