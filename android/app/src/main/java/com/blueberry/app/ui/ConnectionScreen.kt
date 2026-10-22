@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +32,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -72,9 +75,9 @@ fun ConnectionScreen(onDone: () -> Unit, canGoBack: Boolean, vm: ConnectionViewM
             }
     }
 
-    Scaffold(topBar = {
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = {
         TopAppBar(
-            title = { Text("Подключение") },
+            title = { Text("Подключение", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) },
             navigationIcon = {
                 if (canGoBack) IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") }
             },
@@ -85,11 +88,16 @@ fun ConnectionScreen(onDone: () -> Unit, canGoBack: Boolean, vm: ConnectionViewM
             Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                "Откройте на маке `blueberry qr` и отсканируйте код, либо введите адрес и токен вручную. " +
-                    "Сканер QR запускается средствами Google Play Services, приложению не нужен доступ к камере.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Berry(88.dp)
+                Text("Подключение к маку", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp))
+                Text(
+                    "Выполните на маке `blueberry qr` и отсканируйте код, либо введите адрес и токен вручную. " +
+                        "Сканер QR работает через Google Play Services, доступ к камере приложению не нужен.",
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             Button(onClick = ::scan, Modifier.fillMaxWidth()) { Text("Сканировать QR") }
 
             OutlinedTextField(host, { vm.host.value = it }, label = { Text("Адрес мака (IP)") }, singleLine = true,
@@ -109,7 +117,8 @@ fun ConnectionScreen(onDone: () -> Unit, canGoBack: Boolean, vm: ConnectionViewM
                 Text(it.message, color = if (it.ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
             }
 
-            Text("Новые чаты", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+            HorizontalDivider(Modifier.padding(top = 8.dp))
+            Text("Новые чаты", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
             OutlinedTextField(defaults.systemPrompt, { v -> vm.updateDefaults { it.copy(systemPrompt = v) } },
                 label = { Text("Системный промт по умолчанию") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             Text("Температура: ${"%.1f".format(defaults.temperature)}")

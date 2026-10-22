@@ -25,6 +25,10 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,7 +51,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -76,9 +83,10 @@ fun ChatScreen(chatId: Long, onBack: () -> Unit, vm: ChatViewModel = viewModel(k
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(chat?.title ?: "", maxLines = 1) },
+                title = { Text(chat?.title ?: "", maxLines = 1, fontWeight = FontWeight.SemiBold) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },
                 actions = {
                     StatusIndicator(conn)
@@ -88,14 +96,24 @@ fun ChatScreen(chatId: Long, onBack: () -> Unit, vm: ChatViewModel = viewModel(k
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().imePadding()) {
-            (conn as? ConnState.Failed)?.let {
-                Text(ChatErrors.message(it.kind), color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-            }
-            LazyColumn(
+            (conn as? ConnState.Failed)?.let { ErrorCard(ChatErrors.message(it.kind)) }
+            if (messages.isEmpty() && gen == null) {
+                Column(
+                    Modifier.weight(1f).fillMaxWidth().padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+                ) {
+                    Berry(96.dp)
+                    Text("Спросите что угодно", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+                    Text(
+                        "Ответы генерируются на вашем маке, интернет не нужен.",
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            } else LazyColumn(
                 Modifier.weight(1f).fillMaxWidth(), state = listState,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(messages, key = { it.id }) { m -> Bubble(m.role == "user", m.content) }
                 if (gen != null && gen?.phase != Phase.ERROR) item(key = "gen") { GenerationBubble(gen!!) }
@@ -113,6 +131,9 @@ fun ChatScreen(chatId: Long, onBack: () -> Unit, vm: ChatViewModel = viewModel(k
     if (showSettings) chat?.let { ChatSettingsDialog(it, onDismiss = { showSettings = false }, onSave = { p, t, m -> vm.saveSettings(p, t, m); showSettings = false }) }
 }
 
+private val UserShape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)
+private val AssistantShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Bubble(isUser: Boolean, text: String) {
@@ -122,14 +143,20 @@ private fun Bubble(isUser: Boolean, text: String) {
         clipboard.setText(AnnotatedString(text))
         Toast.makeText(ctx, "Скопировано", Toast.LENGTH_SHORT).show()
     }
-    Box(Modifier.fillMaxWidth(), contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.widthIn(max = 560.dp).combinedClickable(onClick = {}, onLongClick = copy),
-        ) {
-            if (isUser) Text(text, Modifier.padding(12.dp), style = MaterialTheme.typography.bodyLarge)
-            else MarkdownText(text, Modifier.padding(12.dp))
+    if (isUser) {
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+            Surface(
+                shape = UserShape, color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.widthIn(max = 520.dp).combinedClickable(onClick = {}, onLongClick = copy),
+            ) { Text(text, Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.bodyLarge) }
+        }
+    } else {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+            BerryAvatar(30.dp)
+            Surface(
+                shape = AssistantShape, color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.widthIn(max = 560.dp).combinedClickable(onClick = {}, onLongClick = copy),
+            ) { MarkdownText(text, Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) }
         }
     }
 }
@@ -140,9 +167,13 @@ private fun GenerationBubble(gen: Generation) {
         Bubble(false, gen.text)
         return
     }
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+        BerryAvatar(30.dp)
+        Surface(shape = AssistantShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+            Row(
+                Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 Text(
                     if (gen.phase == Phase.MODEL_LOADING) "Модель загружается, это может занять до 30 секунд…" else "Думаю…",
@@ -155,8 +186,11 @@ private fun GenerationBubble(gen: Generation) {
 
 @Composable
 private fun ErrorBanner(gen: Generation, onRetry: () -> Unit, onDismiss: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.errorContainer,
+    ) {
+        Row(Modifier.padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 gen.error?.let(ChatErrors::message) ?: "Ошибка", Modifier.weight(1f),
                 color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium,
@@ -169,17 +203,29 @@ private fun ErrorBanner(gen: Generation, onRetry: () -> Unit, onDismiss: () -> U
 
 @Composable
 private fun InputRow(value: String, onValueChange: (String) -> Unit, busy: Boolean, onSend: () -> Unit, onStop: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TextField(
             value, onValueChange, Modifier.weight(1f), placeholder = { Text("Сообщение") },
-            maxLines = 5, shape = RoundedCornerShape(24.dp),
+            maxLines = 5, shape = RoundedCornerShape(26.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+            ),
         )
         if (busy) {
-            IconButton(onClick = onStop) {
-                Box(Modifier.size(16.dp).background(MaterialTheme.colorScheme.error, RoundedCornerShape(3.dp)))
-            }
+            FilledIconButton(
+                onClick = onStop, modifier = Modifier.size(52.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.error),
+            ) { Box(Modifier.size(16.dp).background(MaterialTheme.colorScheme.onError, RoundedCornerShape(3.dp))) }
         } else {
-            IconButton(onClick = onSend, enabled = value.isNotBlank()) { Icon(Icons.AutoMirrored.Filled.Send, "Отправить") }
+            FilledIconButton(onClick = onSend, enabled = value.isNotBlank(), modifier = Modifier.size(52.dp)) {
+                Icon(Icons.AutoMirrored.Filled.Send, "Отправить")
+            }
         }
     }
 }

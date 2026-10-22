@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ягоды черники: для шапки, пустых экранов и аватара ассистента. Сгенерировано из той же геометрии, что и иконка. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="100dp" android:height="100dp" android:viewportWidth="100" android:viewportHeight="100">
+    <path android:pathData="M52,68 a19,19 0 1,0 38,0 a19,19 0 1,0 -38,0 z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="65" android:centerY="61" android:gradientRadius="30"><item android:offset="0" android:color="#7C8CF2"/><item android:offset="0.55" android:color="#3F4FBF"/><item android:offset="1" android:color="#222B84"/></gradient></aapt:attr></path>
+    <path android:pathData="M52,68 a19,19 0 1,0 38,0 a19,19 0 1,0 -38,0 z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="63" android:centerY="59" android:gradientRadius="16"><item android:offset="0" android:color="#40FFFFFF"/><item android:offset="1" android:color="#00FFFFFF"/></gradient></aapt:attr></path>
+    <path android:pathData="M60.5,61 a4.5,2.6 0 1,0 9,0 a4.5,2.6 0 1,0 -9,0 z" android:fillColor="#FFFFFF" android:fillAlpha="0.35"/>
+    <path android:pathData="M13,63 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0 z" android:fillColor="#1A1F5E" android:fillAlpha="0.25"/>
+    <path android:pathData="M10,60 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0 z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="31" android:centerY="48" android:gradientRadius="48"><item android:offset="0" android:color="#6676E8"/><item android:offset="0.5" android:color="#3445B8"/><item android:offset="1" android:color="#18206A"/></gradient></aapt:attr></path>
+    <path android:pathData="M10,60 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0 z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="30" android:centerY="47" android:gradientRadius="26"><item android:offset="0" android:color="#4DFFFFFF"/><item android:offset="1" android:color="#00FFFFFF"/></gradient></aapt:attr></path>
+    <path android:pathData="M21.5,47 a8.5,5 0 1,0 17,0 a8.5,5 0 1,0 -17,0 z" android:fillColor="#FFFFFF" android:fillAlpha="0.3"/>
+    <path android:pathData="M40.00,32.80 L41.76,37.57 L46.85,37.78 L42.85,40.93 L44.23,45.82 L40.00,43.00 L35.77,45.82 L37.15,40.93 L33.15,37.78 L38.24,37.57 z" android:fillColor="#12185A" android:fillAlpha="0.85"/>
+    <path android:pathData="M38,40 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 z" android:fillColor="#6D7CE8"/>
+    <path android:pathData="M46,31 C47,15 62,7 80,9 C80,26 64,36 46,31 Z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="52" android:centerY="15" android:gradientRadius="40"><item android:offset="0" android:color="#8BE3A8"/><item android:offset="1" android:color="#2E9E5B"/></gradient></aapt:attr></path>
+    <path android:pathData="M49,29 C58,23 68,17 77,12" android:strokeColor="#FFFFFF" android:strokeWidth="1.1" android:strokeLineCap="round" android:strokeAlpha="0.55"/>
+</vector>
