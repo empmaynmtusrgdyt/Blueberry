@@ -1,0 +1,15 @@
+#!/bin/bash
+# Создаёт токен доступа ~/.config/blueberry/token (права 600). Вне репозитория.
+#   blueberry-token          создать, если ещё нет
+#   blueberry-token rotate   выпустить новый (старый перестанет работать)
+# Сам токен нигде не печатается.
+set -eu
+FILE="$HOME/.config/blueberry/token"
+mkdir -p "$(dirname "$FILE")"
+if [ -f "$FILE" ] && [ "${1:-}" != "rotate" ]; then
+  echo "Токен уже есть: $FILE (для замены: $0 rotate)"; exit 0
+fi
+umask 077
+python3 -c 'import secrets; print(secrets.token_urlsafe(48))' > "$FILE"
+chmod 600 "$FILE"
+echo "Токен создан: $FILE (права 600)"

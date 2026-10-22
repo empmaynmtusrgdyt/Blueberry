@@ -1,0 +1,43 @@
+#!/bin/bash
+# Закрывает порт LM Studio (1234) от внешних подключений через pf. Порт прокси (8787) остаётся открытым.
+#   blueberry-firewall show     показать, что будет выполнено (ничего не меняет)
+#   blueberry-firewall apply    применить (нужен sudo)
+#   blueberry-firewall remove   полностью откатить (нужен sudo)
+#   blueberry-firewall status   текущее состояние
+# Системный Application Firewall macOS (socketfilterfw) сейчас выключен и фильтрует по приложениям, а не по портам;
+# его не трогаем. Сама по себе LM Studio и так слушает только 127.0.0.1, pf — вторая линия защиты.
+set -eu
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+RULES="$ROOT/firewall/blueberry.pf.rules"
+ANCHOR="com.apple/blueberry"
+STATE="$HOME/.config/blueberry/state/pf_token"
+
+case "${1:-show}" in
+  show)
+    echo "Правила:"; sed 's/^/    /' "$RULES"
+    echo; echo "Команды при apply:"
+    echo "    sudo pfctl -a $ANCHOR -f $RULES"
+    echo "    sudo pfctl -E      # включить pf; токен сохраняется для отката"
+    echo; echo "Команды при remove:"
+    echo "    sudo pfctl -a $ANCHOR -F all"
+    echo "    sudo pfctl -X <токен>   # вернуть pf в прежнее состояние"
+    echo; echo "Проверка: sudo pfctl -a $ANCHOR -sr ; а с телефона: curl http://<IP мака>:1234/v1/models (должен не отвечать)"
+    ;;
+  apply)
+    pfctl -n -f "$RULES"
+    sudo pfctl -a "$ANCHOR" -f "$RULES"
+    mkdir -p "$(dirname "$STATE")"
+    sudo pfctl -E 2>&1 | tee /dev/stderr | sed -n 's/.*Token : *//p' > "$STATE"
+    echo "Применено."
+    ;;
+  remove)
+    sudo pfctl -a "$ANCHOR" -F all
+    if [ -s "$STATE" ]; then sudo pfctl -X "$(cat "$STATE")" && rm -f "$STATE"; fi
+    echo "Откат выполнен."
+    ;;
+  status)
+    sudo pfctl -s info 2>/dev/null | head -1
+    sudo pfctl -a "$ANCHOR" -sr 2>/dev/null || echo "anchor пуст"
+    ;;
+  *) echo "Использование: $0 show|apply|remove|status"; exit 1 ;;
+esac

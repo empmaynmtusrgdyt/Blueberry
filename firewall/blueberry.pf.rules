@@ -1,0 +1,4 @@
+# Правила pf для Blueberry (anchor com.apple/blueberry).
+# Порт LM Studio (1234) закрыт для всего, что пришло не через loopback.
+# Порт прокси (8787) не блокируется: к нему применяется только авторизация по токену.
+block drop in quick on ! lo0 proto tcp from any to any port 1234

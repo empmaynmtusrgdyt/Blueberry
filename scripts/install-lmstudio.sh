@@ -22,5 +22,6 @@ sed "s|__HOME__|$HOME|g" "$ROOT/launchd/com.blueberry.lmstudio.plist.template" >
 plutil -lint "$PLIST"
 
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+sleep 2
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
 echo "Агент $LABEL установлен и запущен. Логи: ~/Library/Logs/Blueberry/"
