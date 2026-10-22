@@ -99,7 +99,7 @@ blueberry qr        # QR для телефона (--png сохранить и о
 
 ## Подключение телефона
 
-1. Установите APK (`android/app/build/outputs/apk/debug/app-debug.apk`, сборка: `cd android && ./gradlew assembleDebug`).
+1. Установите готовый APK из репозитория: `dist/Blueberry-debug.apk` (пересборка: `cd android && ./gradlew assembleDebug`, затем скопировать `app/build/outputs/apk/debug/app-debug.apk` в `dist/Blueberry-debug.apk`).
    Без кабеля APK можно переслать себе, например в Telegram, и открыть на телефоне.
 2. Мак и телефон в одной сети (или мак подключён к hotspot телефона). Прокси слушает 0.0.0.0.
 3. `blueberry qr`, в приложении «Сканировать QR». Альтернатива: ввести IP, порт и токен вручную (`~/.config/blueberry/token`).
