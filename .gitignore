@@ -1,0 +1,35 @@
+# Секреты
+token
+*.token
+.env
+.env.*
+config.local.*
+qr/
+*qr*.png
+*.secret
+
+# Логи и временное
+*.log
+logs/
+.DS_Store
+
+# Android
+android/build/
+android/app/build/
+**/build/
+.gradle/
+local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+.idea/
+*.iml
+captures/
+
+# Окружения
+venv/
+.venv/
+__pycache__/
+*.pyc
+node_modules/
