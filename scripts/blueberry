@@ -9,6 +9,15 @@ STATE_DIR="$HOME/.config/blueberry/state"
 PIDFILE="$STATE_DIR/caffeinate.pid"
 mkdir -p "$STATE_DIR"
 
+ensure_services() {  # поднять агенты, если их остановил watchdog
+  for label in com.blueberry.lmstudio com.blueberry.proxy; do
+    if ! launchctl print "gui/$(id -u)/$label" >/dev/null 2>&1; then
+      launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/$label.plist" 2>/dev/null \
+        && echo "агент $label запущен"
+    fi
+  done
+}
+
 caffeinate_running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
 
 need_helper() {
@@ -18,6 +27,11 @@ need_helper() {
 case "${1:-status}" in
   on)
     need_helper
+    if [ -f "$STATE_DIR/tripped" ]; then
+      echo "Снимаю аварийный режим watchdog: $(cat "$STATE_DIR/tripped")"
+      rm -f "$STATE_DIR/tripped"
+    fi
+    ensure_services
     sudo "$HELPER" on || exit 1
     if ! caffeinate_running; then
       nohup caffeinate -imsu >/dev/null 2>&1 &
@@ -47,6 +61,10 @@ case "${1:-status}" in
         echo "порт $p: $(lsof -nP -iTCP:$p -sTCP:LISTEN | awk 'NR==2 {print $9}')"
       else echo "порт $p: не слушает"; fi
     done
+    echo; echo "== Watchdog =="
+    launchctl print "gui/$(id -u)/com.blueberry.watchdog" >/dev/null 2>&1 && echo "агент: работает" || echo "агент: не запущен"
+    [ -f "$STATE_DIR/tripped" ] && echo "АВАРИЙНЫЙ РЕЖИМ: $(cat "$STATE_DIR/tripped")"
+    [ -f "$STATE_DIR/alerts.log" ] && { echo "последние срабатывания:"; tail -3 "$STATE_DIR/alerts.log" | sed 's/^/  /'; }
     echo; echo "== Блокировки сна (pmset -g assertions) =="
     pmset -g assertions | grep -E "PreventUserIdleSystemSleep|PreventSystemSleep|PreventUserIdleDisplaySleep|pid " | head -8
     ;;
