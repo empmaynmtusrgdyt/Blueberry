@@ -1,0 +1,57 @@
+#!/bin/bash
+# Привилегированная часть переключателя `blueberry`. Устанавливается в /usr/local/libexec/blueberry-pmset
+# (владелец root, права 755) и вызывается через sudo без пароля ТОЛЬКО с аргументами `on` / `off`.
+# Принимает только эти два слова и никаких других параметров, поэтому через sudoers нельзя выполнить произвольный pmset.
+#
+#   on   сохранить текущие настройки, затем disablesleep 1, sleep 0, powernap 0
+#   off  вернуть сохранённые настройки и disablesleep 0
+set -eu
+PATH=/usr/bin:/bin:/usr/sbin:/sbin
+BACKUP_DIR=/var/db/blueberry
+BACKUP="$BACKUP_DIR/pmset.backup"
+
+[ "$(id -u)" -eq 0 ] || { echo "нужен root (запускайте через sudo)"; exit 1; }
+[ "$#" -eq 1 ] || { echo "использование: $0 on|off"; exit 2; }
+
+# Значение параметра для источника питания: "Battery Power" или "AC Power"
+current() { # $1=источник $2=ключ
+  pmset -g custom | awk -v src="$1:" -v key="$2" '
+    $0 ~ /^[A-Za-z]/ { in_src = ($0 == src) }
+    in_src && $1 == key { print $2; exit }'
+}
+
+case "$1" in
+  on)
+    if [ ! -f "$BACKUP" ]; then   # повторный `on` не затирает исходные значения
+      mkdir -p "$BACKUP_DIR"; chmod 700 "$BACKUP_DIR"
+      {
+        for key in sleep powernap; do
+          echo "b $key $(current 'Battery Power' $key)"
+          echo "c $key $(current 'AC Power' $key)"
+        done
+        echo "g disablesleep $(pmset -g | awk '/SleepDisabled/ {print $2}' | head -1)"
+      } > "$BACKUP"
+    fi
+    pmset -a disablesleep 1
+    pmset -a sleep 0
+    pmset -a powernap 0
+    echo "blueberry: режим закрытой крышки включён"
+    ;;
+  off)
+    if [ -f "$BACKUP" ]; then
+      while read -r scope key value; do
+        [ -n "$value" ] || continue
+        case "$scope" in
+          b) pmset -b "$key" "$value" ;;
+          c) pmset -c "$key" "$value" ;;
+        esac
+      done < "$BACKUP"
+      rm -f "$BACKUP"
+    else
+      echo "резервной копии нет: возвращаю только disablesleep"
+    fi
+    pmset -a disablesleep 0     # всегда: это не должно остаться включённым
+    echo "blueberry: обычные настройки сна возвращены"
+    ;;
+  *) echo "использование: $0 on|off"; exit 2 ;;
+esac

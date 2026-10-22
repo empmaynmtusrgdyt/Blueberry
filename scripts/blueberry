@@ -1,0 +1,54 @@
+#!/bin/bash
+# Переключатель режима «мак с закрытой крышкой работает как сервер».
+#   blueberry on      отключить сон (pmset disablesleep, sleep 0, powernap 0) и запустить caffeinate -imsu
+#   blueberry off     вернуть исходные настройки питания и остановить caffeinate
+#   blueberry status  показать состояние
+set -u
+HELPER=/usr/local/libexec/blueberry-pmset
+STATE_DIR="$HOME/.config/blueberry/state"
+PIDFILE="$STATE_DIR/caffeinate.pid"
+mkdir -p "$STATE_DIR"
+
+caffeinate_running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+
+need_helper() {
+  [ -x "$HELPER" ] || { echo "Не установлен $HELPER. Выполните: scripts/install-sudoers.sh show"; exit 1; }
+}
+
+case "${1:-status}" in
+  on)
+    need_helper
+    sudo "$HELPER" on || exit 1
+    if ! caffeinate_running; then
+      nohup caffeinate -imsu >/dev/null 2>&1 &
+      echo $! > "$PIDFILE"
+    fi
+    echo "caffeinate запущен (pid $(cat "$PIDFILE"))"
+    ;;
+  off)
+    if caffeinate_running; then kill "$(cat "$PIDFILE")" 2>/dev/null; fi
+    rm -f "$PIDFILE"
+    need_helper
+    sudo "$HELPER" off
+    ;;
+  status)
+    echo "== Режим =="
+    if pmset -g | grep -qE 'SleepDisabled[[:space:]]+1'; then echo "disablesleep: ВКЛ"; else echo "disablesleep: выкл"; fi
+    caffeinate_running && echo "caffeinate:   работает (pid $(cat "$PIDFILE"))" || echo "caffeinate:   не запущен"
+    echo; echo "== Питание (pmset -g custom) =="
+    pmset -g custom | grep -E "Power:|^ (sleep|powernap|womp|networkoversleep|tcpkeepalive|displaysleep) "
+    echo; echo "== Батарея =="; pmset -g batt | head -2
+    echo; echo "== Термика =="; pmset -g therm | grep -v '^$' | head -4
+    echo; echo "== Сеть =="
+    echo "en0: $(ipconfig getifaddr en0 2>/dev/null || echo нет IP), шлюз: $(route -n get default 2>/dev/null | awk '/gateway/ {print $2}')"
+    echo; echo "== Сервисы =="
+    for p in 1234 8787; do
+      if lsof -nP -iTCP:$p -sTCP:LISTEN >/dev/null 2>&1; then
+        echo "порт $p: $(lsof -nP -iTCP:$p -sTCP:LISTEN | awk 'NR==2 {print $9}')"
+      else echo "порт $p: не слушает"; fi
+    done
+    echo; echo "== Блокировки сна (pmset -g assertions) =="
+    pmset -g assertions | grep -E "PreventUserIdleSystemSleep|PreventSystemSleep|PreventUserIdleDisplaySleep|pid " | head -8
+    ;;
+  *) echo "Использование: blueberry on|off|status"; exit 1 ;;
+esac
