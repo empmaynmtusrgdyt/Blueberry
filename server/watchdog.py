@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import re
+import socket
 import subprocess
 import sys
 import time
@@ -63,6 +64,7 @@ class Watchdog:
         self.lms = g("LMS_BIN", str(Path.home() / ".lmstudio/bin/lms"))
         self.model_id = g("MODEL_IDENTIFIER", "gemma")
         self.lms_port = int(g("LMS_PORT", 1234))
+        self.proxy_port = int(g("PROXY_PORT", 8787))
         self.started = time.time()
         self.hot_since: float | None = None
 
@@ -83,6 +85,23 @@ class Watchdog:
         out = run("pmset", "-g", "therm")
         m = re.search(r"CPU_Speed_Limit\s*=\s*(\d+)", out)
         return level, int(m.group(1)) if m else 100
+
+    @staticmethod
+    def _listening(port: int) -> bool:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+                return True
+        except OSError:
+            return False
+
+    def active(self) -> bool:
+        """Запущено ли что-то, что стоит защищать: сервер LM Studio, прокси или режим закрытой крышки.
+
+        После `blueberry stop` сторож продолжает работать, но заряд и нагрев его уже не касаются:
+        останавливать нечего, а ложные уведомления только путают."""
+        if self._listening(self.lms_port) or self._listening(self.proxy_port):
+            return True
+        return re.search(r"SleepDisabled\s+1", run("pmset", "-g")) is not None
 
     def model_state(self) -> str | None:
         """None: сервер не работает или модель не загружена; иначе статус (IDLE / GENERATING / ...).
@@ -144,6 +163,10 @@ class Watchdog:
         report = []
         if TRIPPED_FILE.exists():
             return ["аварийный режим активен (сброс: blueberry on)"]
+
+        if not self.active():
+            self.hot_since = None
+            return ["сервер и режим закрытой крышки выключены: проверки заряда и нагрева пропущены"]
 
         percent, on_battery = self.battery()
         report.append(f"батарея: {percent}% {'без зарядки' if on_battery else 'питание/зарядка'}")
